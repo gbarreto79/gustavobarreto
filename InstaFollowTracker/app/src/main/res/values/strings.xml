@@ -24,7 +24,7 @@
     <!-- Import -->
     <string name="import_title">Importar dados do Instagram</string>
     <string name="import_explanation_title">Como exportar seus dados</string>
-    <string name="import_explanation_body">1. No Instagram, abra Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações.\n2. Escolha sua conta, selecione apenas \"Seguidores e pessoas que você segue\" e o formato JSON.\n3. Solicite o download. O Instagram enviará um e-mail quando o arquivo (.zip) estiver pronto.\n4. Volte aqui e selecione o arquivo .zip baixado (ou os arquivos followers_1.json e following.json extraídos dele).</string>
+    <string name="import_explanation_body">1. No Instagram, abra Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações.\n2. Escolha sua conta, selecione apenas \"Seguidores e pessoas que você segue\" e o formato JSON.\n3. Solicite o download. O Instagram enviará um e-mail quando o arquivo (.zip) estiver pronto.\n4. Volte aqui e selecione o arquivo .zip baixado — é a opção mais segura, pois o Instagram costuma dividir seus seguidores em vários arquivos (followers_1.json, followers_2.json, ...) e o .zip já traz todos juntos. Se preferir selecionar os JSON manualmente, marque followers_1.json, followers_2.json (se existir) e following.json ao mesmo tempo.</string>
     <string name="import_pick_zip">Selecionar arquivo .zip exportado</string>
     <string name="import_pick_json">Selecionar arquivos JSON (followers/following)</string>
     <string name="import_privacy_note">Seus dados nunca saem do aparelho: tudo é processado e armazenado localmente.</string>

@@ -137,8 +137,13 @@ object InstagramExportParser {
             val entry = array.optJSONObject(i) ?: continue
             val stringListData = entry.optJSONArray("string_list_data") ?: continue
             val first = stringListData.optJSONObject(0) ?: continue
-            val username = first.optString("value").takeIf { it.isNotBlank() } ?: continue
             val href = first.optString("href").takeIf { it.isNotBlank() }
+            // Instagram's "following" export omits "value" entirely; only followers
+            // include it. Fall back to the last path segment of the profile URL
+            // (works for both ".../username" and ".../_u/username" href shapes).
+            val username = first.optString("value").takeIf { it.isNotBlank() }
+                ?: usernameFromHref(href)
+                ?: continue
             val timestamp = if (first.has("timestamp")) first.optLong("timestamp") else null
             result += InstaProfile(
                 username = username,
@@ -147,5 +152,9 @@ object InstagramExportParser {
             )
         }
         return result
+    }
+
+    private fun usernameFromHref(href: String?): String? {
+        return href?.trimEnd('/')?.substringAfterLast('/')?.takeIf { it.isNotBlank() }
     }
 }

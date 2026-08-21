@@ -30,14 +30,15 @@ class InstagramExportParserTest {
         ]
     """.trimIndent()
 
+    // Real Instagram exports omit "value" for the "following" list and use a
+    // "/_u/" href prefix — unlike the followers list above, which has both.
     private val followingJson = """
         {
           "relationships_following": [
             {
-              "title": "",
-              "media_list_data": [],
+              "title": "alice",
               "string_list_data": [
-                {"href": "https://www.instagram.com/alice", "value": "alice", "timestamp": 1500}
+                {"href": "https://www.instagram.com/_u/alice", "timestamp": 1500}
               ]
             }
           ]
@@ -58,6 +59,23 @@ class InstagramExportParserTest {
         val result = InstagramExportParser.parseFollowingJson(followingJson.byteInputStream())
 
         assertEquals(listOf("alice"), result.map { it.username })
+    }
+
+    @Test
+    fun `profiles without value fall back to the last href path segment`() {
+        val json = """
+            {
+              "relationships_following": [
+                {"string_list_data": [{"href": "https://www.instagram.com/_u/carol", "timestamp": 1}]},
+                {"string_list_data": [{"href": "https://www.instagram.com/dave", "value": "dave", "timestamp": 2}]},
+                {"string_list_data": [{"href": "https://www.instagram.com/_u/erin/", "timestamp": 3}]}
+              ]
+            }
+        """.trimIndent()
+
+        val result = InstagramExportParser.parseFollowingJson(json.byteInputStream())
+
+        assertEquals(listOf("carol", "dave", "erin"), result.map { it.username })
     }
 
     @Test

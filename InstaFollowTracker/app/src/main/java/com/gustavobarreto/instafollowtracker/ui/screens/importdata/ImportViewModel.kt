@@ -53,23 +53,34 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
     fun importJsonFiles(uris: List<Uri>) {
         runImport {
             val resolver = getApplication<Application>().contentResolver
-            var followers: List<InstaProfile>? = null
-            var following: List<InstaProfile>? = null
+            // Instagram splits large follower lists across multiple numbered files
+            // (followers_1.json, followers_2.json, ...), so accumulate rather than
+            // overwrite when several files of the same kind are selected together.
+            val followers = mutableListOf<InstaProfile>()
+            val following = mutableListOf<InstaProfile>()
+            var foundFollowers = false
+            var foundFollowing = false
 
             for (uri in uris) {
                 val displayName = queryDisplayName(resolver, uri)
                 resolver.openInputStream(uri)?.use { input ->
                     val (kind, profiles) = InstagramExportParser.detectAndParse(input, displayName)
                     when (kind) {
-                        InstagramExportParser.ListKind.FOLLOWERS -> followers = profiles
-                        InstagramExportParser.ListKind.FOLLOWING -> following = profiles
+                        InstagramExportParser.ListKind.FOLLOWERS -> {
+                            followers += profiles
+                            foundFollowers = true
+                        }
+                        InstagramExportParser.ListKind.FOLLOWING -> {
+                            following += profiles
+                            foundFollowing = true
+                        }
                     }
                 }
             }
 
-            val resolvedFollowers = followers ?: throw MissingFollowersException()
-            val resolvedFollowing = following ?: throw MissingFollowingException()
-            resolvedFollowers to resolvedFollowing
+            if (!foundFollowers) throw MissingFollowersException()
+            if (!foundFollowing) throw MissingFollowingException()
+            followers.toList() to following.toList()
         }
     }
 
