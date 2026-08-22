@@ -29,12 +29,6 @@ sealed interface ImportUiState {
 private class MissingFollowersException : Exception()
 private class MissingFollowingException : Exception()
 
-private data class ParsedImport(
-    val followers: List<InstaProfile>,
-    val following: List<InstaProfile>,
-    val recentlyUnfollowedByInstagram: List<InstaProfile>
-)
-
 class ImportViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository: FollowersRepository =
@@ -52,7 +46,7 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
 
             val followers = contents.followers ?: throw MissingFollowersException()
             val following = contents.following ?: throw MissingFollowingException()
-            ParsedImport(followers, following, contents.recentlyUnfollowed ?: emptyList())
+            followers to following
         }
     }
 
@@ -64,7 +58,6 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
             // overwrite when several files of the same kind are selected together.
             val followers = mutableListOf<InstaProfile>()
             val following = mutableListOf<InstaProfile>()
-            val recentlyUnfollowed = mutableListOf<InstaProfile>()
             var foundFollowers = false
             var foundFollowing = false
 
@@ -81,16 +74,13 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
                             following += profiles
                             foundFollowing = true
                         }
-                        InstagramExportParser.ListKind.RECENTLY_UNFOLLOWED -> {
-                            recentlyUnfollowed += profiles
-                        }
                     }
                 }
             }
 
             if (!foundFollowers) throw MissingFollowersException()
             if (!foundFollowing) throw MissingFollowingException()
-            ParsedImport(followers.toList(), following.toList(), recentlyUnfollowed.toList())
+            followers.toList() to following.toList()
         }
     }
 
@@ -98,13 +88,13 @@ class ImportViewModel(application: Application) : AndroidViewModel(application) 
         _uiState.value = ImportUiState.Idle
     }
 
-    private fun runImport(block: suspend () -> ParsedImport) {
+    private fun runImport(block: suspend () -> Pair<List<InstaProfile>, List<InstaProfile>>) {
         viewModelScope.launch {
             _uiState.value = ImportUiState.Loading
             try {
-                val parsed = withContext(Dispatchers.IO) { block() }
-                repository.importSnapshot(parsed.followers, parsed.following, parsed.recentlyUnfollowedByInstagram)
-                _uiState.value = ImportUiState.Success(parsed.followers.size, parsed.following.size)
+                val (followers, following) = withContext(Dispatchers.IO) { block() }
+                repository.importSnapshot(followers, following)
+                _uiState.value = ImportUiState.Success(followers.size, following.size)
             } catch (e: MissingFollowersException) {
                 _uiState.value = ImportUiState.Error(R.string.import_error_missing_followers)
             } catch (e: MissingFollowingException) {

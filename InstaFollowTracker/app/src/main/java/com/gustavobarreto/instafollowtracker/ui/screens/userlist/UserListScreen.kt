@@ -37,10 +37,7 @@ fun UserListScreen(kind: UserListKind) {
         !uiState.hasSnapshot -> {
             EmptyState(title = stringResource(R.string.user_list_empty_no_history))
         }
-        kind == UserListKind.NEW_FOLLOWERS && uiState.isFirstImport -> {
-            // Only "new followers" strictly requires a previous snapshot to compare
-            // against. "Unfollowers" can already be non-empty on a first import when
-            // Instagram's own recently_unfollowed_profiles.json was included.
+        kind != UserListKind.NOT_FOLLOWING_BACK && uiState.isFirstImport -> {
             EmptyState(title = stringResource(R.string.user_list_empty_no_history))
         }
         uiState.profiles.isEmpty() -> {

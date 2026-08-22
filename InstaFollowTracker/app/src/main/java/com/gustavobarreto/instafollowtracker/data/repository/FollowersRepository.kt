@@ -23,11 +23,7 @@ class FollowersRepository(private val db: AppDatabase) {
 
     suspend fun hasAnySnapshot(): Boolean = db.snapshotDao().count() > 0
 
-    suspend fun importSnapshot(
-        followers: List<InstaProfile>,
-        following: List<InstaProfile>,
-        recentlyUnfollowedByInstagram: List<InstaProfile> = emptyList()
-    ): Long {
+    suspend fun importSnapshot(followers: List<InstaProfile>, following: List<InstaProfile>): Long {
         val snapshotId = db.snapshotDao().insert(
             SnapshotEntity(
                 importedAtEpochMillis = System.currentTimeMillis(),
@@ -37,8 +33,7 @@ class FollowersRepository(private val db: AppDatabase) {
         )
 
         val records = followers.map { it.toEntity(snapshotId, ListType.FOLLOWER) } +
-            following.map { it.toEntity(snapshotId, ListType.FOLLOWING) } +
-            recentlyUnfollowedByInstagram.map { it.toEntity(snapshotId, ListType.RECENTLY_UNFOLLOWED) }
+            following.map { it.toEntity(snapshotId, ListType.FOLLOWING) }
         db.profileRecordDao().insertAll(records)
 
         return snapshotId
@@ -64,24 +59,12 @@ class FollowersRepository(private val db: AppDatabase) {
         val currentFollowers = db.profileRecordDao().getRecords(snapshot.id, ListType.FOLLOWER).map { it.toDomain() }
         val currentFollowing = db.profileRecordDao().getRecords(snapshot.id, ListType.FOLLOWING).map { it.toDomain() }
 
-        val diffFromSnapshots = if (previous == null) {
+        val followersDiff = if (previous == null) {
             FollowersDiff(newFollowers = emptyList(), lostFollowers = emptyList())
         } else {
             val previousFollowers = db.profileRecordDao().getRecords(previous.id, ListType.FOLLOWER).map { it.toDomain() }
             DiffCalculator.diffFollowers(previousFollowers, currentFollowers)
         }
-
-        // Merge in Instagram's own "recently unfollowed" report (from
-        // recently_unfollowed_profiles.json, when present): the exported
-        // followers list can itself be incomplete, so snapshot-to-snapshot
-        // diffing alone can miss real unfollows.
-        val recentlyUnfollowedByInstagram = db.profileRecordDao()
-            .getRecords(snapshot.id, ListType.RECENTLY_UNFOLLOWED)
-            .map { it.toDomain() }
-        val mergedLostFollowers = (diffFromSnapshots.lostFollowers + recentlyUnfollowedByInstagram)
-            .distinctBy { it.username.lowercase() }
-            .sortedBy { it.username.lowercase() }
-        val followersDiff = diffFromSnapshots.copy(lostFollowers = mergedLostFollowers)
 
         val notFollowingBack = DiffCalculator.notFollowingBack(currentFollowers, currentFollowing)
 
