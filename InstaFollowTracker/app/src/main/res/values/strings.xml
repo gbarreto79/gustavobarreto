@@ -1,0 +1,53 @@
+<resources>
+    <string name="app_name">Seguidores Tracker</string>
+
+    <!-- Navegação -->
+    <string name="nav_dashboard">Início</string>
+    <string name="nav_unfollowers">Deixaram de seguir</string>
+    <string name="nav_new_followers">Novos seguidores</string>
+    <string name="nav_not_following_back">Não seguem de volta</string>
+    <string name="nav_import">Importar</string>
+
+    <!-- Dashboard -->
+    <string name="dashboard_title">Resumo</string>
+    <string name="dashboard_followers">Seguidores</string>
+    <string name="dashboard_following">Seguindo</string>
+    <string name="dashboard_unfollowers">Deixaram de te seguir</string>
+    <string name="dashboard_new_followers">Novos seguidores</string>
+    <string name="dashboard_not_following_back">Não seguem de volta</string>
+    <string name="dashboard_last_import">Última importação: %1$s</string>
+    <string name="dashboard_no_data_title">Nenhum dado ainda</string>
+    <string name="dashboard_no_data_body">Importe seus dados do Instagram para começar a acompanhar quem deixou de te seguir e quem passou a te seguir.</string>
+    <string name="dashboard_import_cta">Importar dados do Instagram</string>
+    <string name="dashboard_first_import_note">Esta é sua primeira importação — as comparações aparecerão a partir da próxima vez que você importar seus dados.</string>
+
+    <!-- Import -->
+    <string name="import_title">Importar dados do Instagram</string>
+    <string name="import_explanation_title">Como exportar seus dados</string>
+    <string name="import_explanation_body">1. No Instagram, abra Configurações → Central de Contas → Suas informações e permissões → Baixar suas informações.\n2. Escolha sua conta, selecione apenas \"Seguidores e pessoas que você segue\" e o formato JSON.\n3. Solicite o download. O Instagram enviará um e-mail quando o arquivo (.zip) estiver pronto.\n4. Volte aqui e selecione o arquivo .zip baixado — é a opção mais segura, pois o Instagram costuma dividir seus seguidores em vários arquivos (followers_1.json, followers_2.json, ...) e o .zip já traz todos juntos. Se preferir selecionar os JSON manualmente, marque followers_1.json, followers_2.json (se existir) e following.json ao mesmo tempo.</string>
+    <string name="import_pick_zip">Selecionar arquivo .zip exportado</string>
+    <string name="import_pick_json">Selecionar arquivos JSON (followers/following)</string>
+    <string name="import_privacy_note">Seus dados nunca saem do aparelho: tudo é processado e armazenado localmente.</string>
+    <string name="import_loading">Lendo e comparando seus dados…</string>
+    <string name="import_success">Importação concluída com sucesso!</string>
+    <string name="import_error_generic">Não foi possível ler o arquivo selecionado. Verifique se é o export oficial do Instagram (JSON).</string>
+    <string name="import_error_missing_followers">Não encontramos a lista de seguidores (followers_1.json) no arquivo selecionado.</string>
+    <string name="import_error_missing_following">Não encontramos a lista de quem você segue (following.json) no arquivo selecionado.</string>
+
+    <!-- User lists -->
+    <string name="user_list_empty_unfollowers">Ninguém deixou de te seguir desde a última importação. 🎉</string>
+    <string name="user_list_empty_new_followers">Nenhum seguidor novo desde a última importação.</string>
+    <string name="user_list_empty_not_following_back">Todo mundo que você segue também te segue de volta!</string>
+    <string name="user_list_empty_no_history">Importe pelo menos duas vezes para começar a ver comparações aqui.</string>
+    <string name="user_list_open_profile">Abrir perfil no Instagram</string>
+
+    <!-- History -->
+    <string name="history_title">Histórico de importações</string>
+    <string name="history_empty">Nenhuma importação registrada ainda.</string>
+    <string name="history_item_summary">%1$d seguidores · %2$d seguindo</string>
+    <string name="history_delete">Excluir</string>
+    <string name="history_delete_confirm_title">Excluir esta importação?</string>
+    <string name="history_delete_confirm_body">Isso remove o snapshot e recalcula as comparações com base nos dados restantes.</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_delete">Excluir</string>
+</resources>
