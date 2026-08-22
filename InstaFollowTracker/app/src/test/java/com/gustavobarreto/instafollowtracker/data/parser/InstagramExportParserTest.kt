@@ -54,6 +54,67 @@ class InstagramExportParserTest {
         assertEquals(1000L, result[0].igTimestampEpochSeconds)
     }
 
+    // Real recently_unfollowed_profiles.json shape: a flat list of localized
+    // {label, value} pairs per profile, username always last. Includes the
+    // classic Instagram export mojibake in "Nome" (double UTF-8 encoding) to
+    // prove it doesn't break username extraction, since only the last entry
+    // (the plain-ASCII username) is read.
+    private val recentlyUnfollowedJson = """
+        [
+          {
+            "timestamp": 1786815159,
+            "media": [],
+            "label_values": [
+              {"label": "URL", "value": ""},
+              {"label": "Nome", "value": "Alessandra Mattos â¤"},
+              {"label": "Nome de usuÃ¡rio", "value": "mattosalessandra"}
+            ]
+          },
+          {
+            "timestamp": 1785772389,
+            "media": [],
+            "label_values": [
+              {"label": "URL", "value": "https://example.com/links"},
+              {"label": "Nome", "value": "Roberta Staub"},
+              {"label": "Nome de usuÃ¡rio", "value": "robertastaub"}
+            ]
+          }
+        ]
+    """.trimIndent()
+
+    @Test
+    fun `parseRecentlyUnfollowedJson reads username from the last label_values entry`() {
+        val result = InstagramExportParser.parseRecentlyUnfollowedJson(recentlyUnfollowedJson.byteInputStream())
+
+        assertEquals(listOf("mattosalessandra", "robertastaub"), result.map { it.username })
+        assertEquals(1786815159L, result[0].igTimestampEpochSeconds)
+        assertEquals("https://www.instagram.com/mattosalessandra", result[0].profileUrl)
+    }
+
+    @Test
+    fun `parseZip also finds recently_unfollowed_profiles file`() {
+        val zipBytes = buildZip(
+            "connections/followers_and_following/followers_1.json" to followersJson,
+            "connections/followers_and_following/following.json" to followingJson,
+            "connections/followers_and_following/recently_unfollowed_profiles.json" to recentlyUnfollowedJson
+        )
+
+        val contents = InstagramExportParser.parseZip(ByteArrayInputStream(zipBytes))
+
+        assertEquals(2, contents.recentlyUnfollowed?.size)
+    }
+
+    @Test
+    fun `detectAndParse distinguishes recently_unfollowed shape from followers shape by content`() {
+        val (kind, profiles) = InstagramExportParser.detectAndParse(
+            recentlyUnfollowedJson.byteInputStream(),
+            "export.json"
+        )
+
+        assertEquals(InstagramExportParser.ListKind.RECENTLY_UNFOLLOWED, kind)
+        assertEquals(2, profiles.size)
+    }
+
     @Test
     fun `parseFollowingJson reads relationships_following array`() {
         val result = InstagramExportParser.parseFollowingJson(followingJson.byteInputStream())

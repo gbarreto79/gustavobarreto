@@ -12,5 +12,7 @@ data class InstaProfile(
 
 enum class ListType {
     FOLLOWER,
-    FOLLOWING
+    FOLLOWING,
+    /** From `recently_unfollowed_profiles.json` — Instagram's own record of accounts that recently unfollowed you. */
+    RECENTLY_UNFOLLOWED
 }

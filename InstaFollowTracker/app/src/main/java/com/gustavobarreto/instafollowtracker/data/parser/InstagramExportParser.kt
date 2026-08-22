@@ -21,18 +21,22 @@ object InstagramExportParser {
 
     data class ExportContents(
         val followers: List<InstaProfile>?,
-        val following: List<InstaProfile>?
+        val following: List<InstaProfile>?,
+        val recentlyUnfollowed: List<InstaProfile>?
     )
 
     private val FOLLOWERS_FILE_REGEX = Regex("""^followers(_\d+)?\.json$""", RegexOption.IGNORE_CASE)
     private val FOLLOWING_FILE_REGEX = Regex("""^following\.json$""", RegexOption.IGNORE_CASE)
+    private val RECENTLY_UNFOLLOWED_FILE_REGEX = Regex("""^recently_unfollowed_profiles\.json$""", RegexOption.IGNORE_CASE)
 
     /** Parses a `.zip` file downloaded directly from Instagram's data export tool. */
     fun parseZip(input: InputStream): ExportContents {
         val followers = mutableListOf<InstaProfile>()
         val following = mutableListOf<InstaProfile>()
+        val recentlyUnfollowed = mutableListOf<InstaProfile>()
         var foundFollowers = false
         var foundFollowing = false
+        var foundRecentlyUnfollowed = false
 
         ZipInputStream(input).use { zip ->
             var entry = zip.nextEntry
@@ -49,6 +53,11 @@ object InstagramExportParser {
                         following += parseFollowingObject(JSONObject(text))
                         foundFollowing = true
                     }
+                    !entry.isDirectory && RECENTLY_UNFOLLOWED_FILE_REGEX.matches(fileName) -> {
+                        val text = zip.bufferedReader(Charsets.UTF_8).readText()
+                        recentlyUnfollowed += parseRecentlyUnfollowedArray(JSONArray(text))
+                        foundRecentlyUnfollowed = true
+                    }
                 }
                 zip.closeEntry()
                 entry = zip.nextEntry
@@ -57,7 +66,8 @@ object InstagramExportParser {
 
         return ExportContents(
             followers = if (foundFollowers) followers else null,
-            following = if (foundFollowing) following else null
+            following = if (foundFollowing) following else null,
+            recentlyUnfollowed = if (foundRecentlyUnfollowed) recentlyUnfollowed else null
         )
     }
 
@@ -83,9 +93,20 @@ object InstagramExportParser {
         return parseFollowingObject(json)
     }
 
+    /** Parses a single `recently_unfollowed_profiles.json` file. */
+    fun parseRecentlyUnfollowedJson(input: InputStream): List<InstaProfile> {
+        val text = input.bufferedReader(Charsets.UTF_8).readText()
+        val json = try {
+            JSONArray(text)
+        } catch (e: Exception) {
+            throw InstagramExportParseException("Formato inesperado para o arquivo de quem deixou de seguir recentemente.")
+        }
+        return parseRecentlyUnfollowedArray(json)
+    }
+
     /**
-     * Attempts to detect whether a standalone JSON file is a followers or a
-     * following export, based on its file name and, failing that, its shape.
+     * Attempts to detect the kind of a standalone JSON file, based on its file
+     * name and, failing that, its shape.
      */
     fun detectAndParse(input: InputStream, fileName: String?): Pair<ListKind, List<InstaProfile>> {
         val text = input.bufferedReader(Charsets.UTF_8).readText()
@@ -97,17 +118,28 @@ object InstagramExportParser {
         if (shortName != null && FOLLOWING_FILE_REGEX.matches(shortName)) {
             return ListKind.FOLLOWING to parseFollowingObject(JSONObject(text))
         }
+        if (shortName != null && RECENTLY_UNFOLLOWED_FILE_REGEX.matches(shortName)) {
+            return ListKind.RECENTLY_UNFOLLOWED to parseRecentlyUnfollowedArray(JSONArray(text))
+        }
 
         // Fall back to sniffing the content itself.
         val trimmed = text.trimStart()
         return when {
-            trimmed.startsWith("[") -> ListKind.FOLLOWERS to parseFollowersArray(JSONArray(text))
+            trimmed.startsWith("[") -> {
+                val array = JSONArray(text)
+                val firstEntry = array.optJSONObject(0)
+                if (firstEntry != null && firstEntry.has("label_values")) {
+                    ListKind.RECENTLY_UNFOLLOWED to parseRecentlyUnfollowedArray(array)
+                } else {
+                    ListKind.FOLLOWERS to parseFollowersArray(array)
+                }
+            }
             trimmed.startsWith("{") -> ListKind.FOLLOWING to parseFollowingObject(JSONObject(text))
             else -> throw InstagramExportParseException("Não foi possível reconhecer o conteúdo do arquivo.")
         }
     }
 
-    enum class ListKind { FOLLOWERS, FOLLOWING }
+    enum class ListKind { FOLLOWERS, FOLLOWING, RECENTLY_UNFOLLOWED }
 
     private fun parseFollowersArray(array: JSONArray): List<InstaProfile> {
         return profilesFromArray(array)
@@ -148,6 +180,31 @@ object InstagramExportParser {
             result += InstaProfile(
                 username = username,
                 profileUrl = href,
+                igTimestampEpochSeconds = timestamp
+            )
+        }
+        return result
+    }
+
+    /**
+     * `recently_unfollowed_profiles.json` entries use a completely different
+     * shape: a flat list of `{label, value}` pairs per profile (e.g. "URL",
+     * "Nome", "Nome de usuário" — label text is localized per account language).
+     * The username is always the last entry, so read positionally rather than
+     * matching localized label text.
+     */
+    private fun parseRecentlyUnfollowedArray(array: JSONArray): List<InstaProfile> {
+        val result = mutableListOf<InstaProfile>()
+        for (i in 0 until array.length()) {
+            val entry = array.optJSONObject(i) ?: continue
+            val labelValues = entry.optJSONArray("label_values") ?: continue
+            if (labelValues.length() == 0) continue
+            val usernameEntry = labelValues.optJSONObject(labelValues.length() - 1) ?: continue
+            val username = usernameEntry.optString("value").takeIf { it.isNotBlank() } ?: continue
+            val timestamp = if (entry.has("timestamp")) entry.optLong("timestamp") else null
+            result += InstaProfile(
+                username = username,
+                profileUrl = "https://www.instagram.com/$username",
                 igTimestampEpochSeconds = timestamp
             )
         }
