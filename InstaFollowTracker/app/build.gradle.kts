@@ -19,6 +19,19 @@ android {
         vectorDrawables.useSupportLibrary = true
     }
 
+    signingConfigs {
+        getByName("debug") {
+            // Committed on purpose: a fixed debug key so every CI build (each run gets a
+            // brand-new machine, which would otherwise generate a fresh random debug key)
+            // signs with the same certificate. Without this, installing a newer debug APK
+            // over an older one fails with a silent signature mismatch.
+            storeFile = file("debug.keystore")
+            storePassword = "android"
+            keyAlias = "androiddebugkey"
+            keyPassword = "android"
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
@@ -31,6 +44,7 @@ android {
         debug {
             isMinifyEnabled = false
             applicationIdSuffix = ".debug"
+            signingConfig = signingConfigs.getByName("debug")
         }
     }
 
